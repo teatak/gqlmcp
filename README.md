@@ -1,1 +1,3 @@
 # gqlmcp
+
+mcp graphql proxy
