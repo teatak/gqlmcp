@@ -1,1 +1,1 @@
-# mcp-graphql
+# gqlmcp
