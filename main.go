@@ -17,25 +17,16 @@ import (
 	"github.com/teatak/gqlmcp/common"
 )
 
-type GraphQLRequest struct {
-	Query     string                 `json:"query"`
-	Variables map[string]interface{} `json:"variables,omitempty"`
+type Empty struct {
 }
 
-func main() {
+type GraphQLRequest struct {
+	Query     string         `json:"query"`
+	Variables map[string]any `json:"variables,omitempty"`
+}
 
-	server := mcp.NewServer(&mcp.Implementation{
-		Name:    "mcp-graphql",
-		Version: common.Version,
-	}, nil)
-
-	mcp.AddTool(server,
-		&mcp.Tool{
-			Name:        "inspect_schema",
-			Description: "Introspect the GraphQL schema, use this tool before doing a query to get the schema information if you do not have it available as a resource already.",
-		},
-		func(ctx context.Context, req *mcp.CallToolRequest, args map[string]any) (*mcp.CallToolResult, any, error) {
-			introspectionQuery := `
+var endpoint = ""
+var introspectionQuery = `
 query IntrospectionQuery {
   __schema {
     queryType {
@@ -147,46 +138,92 @@ fragment TypeRef on __Type {
   }
 }
 		`
+
+func main() {
+	endpoint = os.Getenv("URL")
+	if endpoint == "" {
+		endpoint = "https://countries.trevorblades.com/"
+	}
+
+	server := mcp.NewServer(&mcp.Implementation{
+		Name:    "mcp-graphql",
+		Version: common.Version,
+	}, nil)
+
+	server.AddResource(&mcp.Resource{
+		Name:        "graphql-schema",
+		Description: "access graphql schema",
+		URI:         endpoint,
+		MIMEType:    "application/json",
+	}, func(ctx context.Context, req *mcp.ReadResourceRequest) (*mcp.ReadResourceResult, error) {
+		result, err := executeGraphQL(introspectionQuery, nil)
+		if err != nil {
+			return nil, err
+		}
+		return &mcp.ReadResourceResult{
+			Contents: []*mcp.ResourceContents{
+				{
+					URI:      req.Params.URI,
+					MIMEType: "application/json",
+					Text:     string(result),
+				},
+			},
+		}, nil
+	})
+
+	server.AddTool(&mcp.Tool{
+		Name:        "introspect_schema",
+		Description: "introspect the GraphQL schema, use this tool before doing a query to get the schema information if you do not have it available as a resource already.",
+		InputSchema: &jsonschema.Schema{
+			Type: "object",
+		},
+	},
+		func(ctx context.Context, req *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 			result, err := executeGraphQL(introspectionQuery, nil)
 			if err != nil {
-				return nil, nil, err
+				return nil, err
 			}
 			return &mcp.CallToolResult{
 				Content: []mcp.Content{
 					&mcp.TextContent{Text: result},
 				},
-			}, nil, nil
+			}, nil
 		},
 	)
 
-	mcp.AddTool(server,
+	server.AddTool(
 		&mcp.Tool{
 			Name:        "graphql_request",
-			Description: "Query a GraphQL endpoint with the given query and variables",
+			Description: "query a GraphQL endpoint with the given query and variables",
 			InputSchema: &jsonschema.Schema{
 				Type: "object",
 				Properties: map[string]*jsonschema.Schema{
 					"query": {
 						Type:        "string",
-						Description: "GraphQL query string (e.g., 'query { user { name } }')",
+						Description: "the GraphQL query string (e.g. 'query { user { name } }')",
 					},
 					"variables": {
 						Type:        "object",
-						Description: "Optional variables JSON object",
+						Description: "optional variables",
 					},
 				},
 				Required: []string{"query"},
-			}},
-		func(ctx context.Context, req *mcp.CallToolRequest, args GraphQLRequest) (*mcp.CallToolResult, any, error) {
+			},
+		},
+		func(ctx context.Context, req *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+			args := &GraphQLRequest{}
+			if err := json.Unmarshal(req.Params.Arguments, args); err != nil {
+				return nil, err
+			}
 			result, err := executeGraphQL(args.Query, args.Variables)
 			if err != nil {
-				return nil, nil, err
+				return nil, err
 			}
 			return &mcp.CallToolResult{
 				Content: []mcp.Content{
 					&mcp.TextContent{Text: result},
 				},
-			}, nil, nil
+			}, nil
 		},
 	)
 	if err := server.Run(context.Background(), &mcp.StdioTransport{}); err != nil {
@@ -195,13 +232,6 @@ fragment TypeRef on __Type {
 }
 
 func executeGraphQL(query string, variables map[string]interface{}) (string, error) {
-
-	endpoint := os.Getenv("URL")
-	if endpoint == "" {
-		endpoint = "https://countries.trevorblades.com/"
-		log.Printf("URL env var not set, using default demo URL: %s", endpoint)
-	}
-
 	reqBody := GraphQLRequest{
 		Query:     query,
 		Variables: variables,
@@ -219,12 +249,17 @@ func executeGraphQL(query string, variables map[string]interface{}) (string, err
 
 	req.Header.Set("Content-Type", "application/json")
 
-	if headerStr := os.Getenv("HEADER"); headerStr != "" {
-		parts := strings.SplitN(headerStr, ":", 2)
-		if len(parts) == 2 {
-			key := strings.TrimSpace(parts[0])
-			value := strings.TrimSpace(parts[1])
-			req.Header.Set(key, value)
+	if headersEnv := os.Getenv("HEADERS"); headersEnv != "" {
+		var headers map[string]string
+		if err := json.Unmarshal([]byte(headersEnv), &headers); err == nil {
+			for k, v := range headers {
+				req.Header.Set(k, v)
+			}
+		} else {
+			parts := strings.SplitN(headersEnv, ":", 2)
+			if len(parts) == 2 {
+				req.Header.Set(strings.TrimSpace(parts[0]), strings.TrimSpace(parts[1]))
+			}
 		}
 	}
 
