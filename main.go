@@ -153,7 +153,7 @@ func main() {
 	server.AddResource(&mcp.Resource{
 		Name:        "graphql-schema",
 		Description: "access graphql schema",
-		URI:         endpoint,
+		URI:         "graphql://schema",
 		MIMEType:    "application/json",
 	}, func(ctx context.Context, req *mcp.ReadResourceRequest) (*mcp.ReadResourceResult, error) {
 		result, err := executeGraphQL(introspectionQuery, nil)
@@ -163,7 +163,7 @@ func main() {
 		return &mcp.ReadResourceResult{
 			Contents: []*mcp.ResourceContents{
 				{
-					URI:      req.Params.URI,
+					URI:      "graphql://schema",
 					MIMEType: "application/json",
 					Text:     string(result),
 				},
@@ -273,11 +273,6 @@ func executeGraphQL(query string, variables map[string]interface{}) (string, err
 	respBody, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return "", fmt.Errorf("failed to read response: %w", err)
-	}
-
-	// We treat HTTP 4xx/5xx as errors, but GraphQL errors (inside 200 OK) are returned as content.
-	if resp.StatusCode >= 400 {
-		return string(respBody), fmt.Errorf("http status %d", resp.StatusCode)
 	}
 
 	return string(respBody), nil
