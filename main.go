@@ -151,34 +151,36 @@ func main() {
 		Version: common.Version,
 	}, nil)
 
-	server.AddResource(&mcp.Resource{
-		Name:        "graphql-schema",
-		Description: "access graphql schema",
-		URI:         "graphql://schema",
-		MIMEType:    "application/json",
-	}, func(ctx context.Context, req *mcp.ReadResourceRequest) (*mcp.ReadResourceResult, error) {
-		result, err := executeGraphQL(introspectionQuery, nil)
-		if err != nil {
-			return nil, err
-		}
-		return &mcp.ReadResourceResult{
-			Contents: []*mcp.ResourceContents{
-				{
-					URI:      "graphql://schema",
-					MIMEType: "application/json",
-					Text:     string(result),
+	server.AddResource(
+		&mcp.Resource{
+			Name:        "graphql-schema",
+			Description: "access graphql schema",
+			URI:         "graphql://schema",
+			MIMEType:    "application/json",
+		}, func(ctx context.Context, req *mcp.ReadResourceRequest) (*mcp.ReadResourceResult, error) {
+			result, err := executeGraphQL(introspectionQuery, nil)
+			if err != nil {
+				return nil, err
+			}
+			return &mcp.ReadResourceResult{
+				Contents: []*mcp.ResourceContents{
+					{
+						URI:      "graphql://schema",
+						MIMEType: "application/json",
+						Text:     string(result),
+					},
 				},
-			},
-		}, nil
-	})
+			}, nil
+		})
 
-	server.AddTool(&mcp.Tool{
-		Name:        "introspect_schema",
-		Description: "introspect the GraphQL schema, use this tool before doing a query to get the schema information if you do not have it available as a resource already.",
-		InputSchema: &jsonschema.Schema{
-			Type: "object",
+	server.AddTool(
+		&mcp.Tool{
+			Name:        "introspect_schema",
+			Description: "introspect the GraphQL schema, use this tool before doing a query to get the schema information if you do not have it available as a resource already.",
+			InputSchema: &jsonschema.Schema{
+				Type: "object",
+			},
 		},
-	},
 		func(ctx context.Context, req *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 			result, err := executeGraphQL(introspectionQuery, nil)
 			if err != nil {
