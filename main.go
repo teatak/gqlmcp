@@ -140,6 +140,7 @@ fragment TypeRef on __Type {
 		`
 
 func main() {
+
 	endpoint = os.Getenv("URL")
 	if endpoint == "" {
 		endpoint = "https://countries.trevorblades.com/"
@@ -226,8 +227,12 @@ func main() {
 			}, nil
 		},
 	)
-	if err := server.Run(context.Background(), &mcp.StdioTransport{}); err != nil {
-		log.Fatal(err)
+	transport := &mcp.StdioTransport{} // 推荐显式创建
+
+	ctx := context.Background()
+	if err := server.Run(ctx, transport); err != nil {
+		log.Printf("Server error: %v", err)
+		os.Exit(1)
 	}
 }
 
