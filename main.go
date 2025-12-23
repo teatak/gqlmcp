@@ -229,7 +229,8 @@ func main() {
 			}, nil
 		},
 	)
-	transport := &mcp.StdioTransport{} // 推荐显式创建
+
+	transport := &mcp.StdioTransport{}
 
 	ctx := context.Background()
 	if err := server.Run(ctx, transport); err != nil {
