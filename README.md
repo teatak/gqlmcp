@@ -2,15 +2,15 @@
 
 mcp graphql proxy
 
-
+config 
 ```yaml
 name: booking
 version: 0.0.1
 schema: v1
 mcpServers:
   - name: booking
-    command: gqlmcp/bin/gqlmcp
+    command: ./gqlmcp/gqlmcp
     env: 
-    #   URL: "http://localhost:8201/api"
-    #   HEADER: "Authorization: Token mytoken"
+      URL: "https://countries.trevorblades.com/"
+      HEADER: '{"Authorization": "Token mytoken"}'
 ```
