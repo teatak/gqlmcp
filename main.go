@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"flag"
 	"fmt"
 	"io"
 	"log"
@@ -140,6 +141,25 @@ fragment TypeRef on __Type {
 		`
 
 func main() {
+	flag.Usage = func() {
+		fmt.Fprintf(os.Stderr, "Usage of %s:\n", os.Args[0])
+		fmt.Fprintf(os.Stderr, "\nThis program is an MCP server for GraphQL APIs.\n")
+		fmt.Fprintf(os.Stderr, "\nEnvironment Variables:\n")
+		fmt.Fprintf(os.Stderr, "  URL      GraphQL API endpoint (default: https://countries.trevorblades.com/)\n")
+		fmt.Fprintf(os.Stderr, "  HEADERS  Custom headers in JSON or 'Key: Value' format\n")
+		fmt.Fprintf(os.Stderr, "\nFlags:\n")
+		flag.PrintDefaults()
+	}
+
+	var showHelp bool
+	flag.BoolVar(&showHelp, "help", false, "Show help message")
+	flag.BoolVar(&showHelp, "h", false, "Show help message")
+	flag.Parse()
+
+	if showHelp {
+		flag.Usage()
+		os.Exit(0)
+	}
 
 	endpoint = os.Getenv("URL")
 	if endpoint == "" {
