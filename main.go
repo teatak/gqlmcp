@@ -30,28 +30,11 @@ var endpoint = ""
 var introspectionQuery = `
 query IntrospectionQuery {
   __schema {
-    queryType {
-      name
-      kind
-    }
-    mutationType {
-      name
-      kind
-    }
-    subscriptionType {
-      name
-      kind
-    }
+    queryType { name kind }
+    mutationType { name kind }
+    subscriptionType { name kind }
     types {
       ...FullType
-    }
-    directives {
-      name
-      description
-      locations
-      args {
-        ...InputValue
-      }
     }
   }
 }
@@ -59,18 +42,14 @@ query IntrospectionQuery {
 fragment FullType on __Type {
   kind
   name
-  description
   fields(includeDeprecated: true) {
     name
-    description
     args {
       ...InputValue
     }
     type {
       ...TypeRef
     }
-    isDeprecated
-    deprecationReason
   }
   inputFields {
     ...InputValue
@@ -80,9 +59,6 @@ fragment FullType on __Type {
   }
   enumValues(includeDeprecated: true) {
     name
-    description
-    isDeprecated
-    deprecationReason
   }
   possibleTypes {
     ...TypeRef
@@ -91,7 +67,6 @@ fragment FullType on __Type {
 
 fragment InputValue on __InputValue {
   name
-  description
   type {
     ...TypeRef
   }
@@ -138,7 +113,7 @@ fragment TypeRef on __Type {
     }
   }
 }
-		`
+`
 
 func main() {
 	flag.Usage = func() {
