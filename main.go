@@ -30,86 +30,22 @@ var endpoint = ""
 var introspectionQuery = `
 query IntrospectionQuery {
   __schema {
-    queryType { name kind }
-    mutationType { name kind }
-    subscriptionType { name kind }
     types {
-      ...FullType
-    }
-  }
-}
-
-fragment FullType on __Type {
-  kind
-  name
-  fields(includeDeprecated: true) {
-    name
-    args {
-      ...InputValue
-    }
-    type {
-      ...TypeRef
-    }
-  }
-  inputFields {
-    ...InputValue
-  }
-  interfaces {
-    ...TypeRef
-  }
-  enumValues(includeDeprecated: true) {
-    name
-  }
-  possibleTypes {
-    ...TypeRef
-  }
-}
-
-fragment InputValue on __InputValue {
-  name
-  type {
-    ...TypeRef
-  }
-  defaultValue
-}
-
-fragment TypeRef on __Type {
-  kind
-  name
-  ofType {
-    kind
-    name
-    ofType {
       kind
       name
-      ofType {
-        kind
-        name
-        ofType {
-          kind
-          name
-          ofType {
-            kind
-            name
-            ofType {
-              kind
-              name
-              ofType {
-                kind
-                name
-                ofType {
-                  kind
-                  name
-                  ofType {
-                    kind
-                    name
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
+	  description
+      fields { 
+	    name
+	    description
+	  }
+      inputFields { 
+	    name
+	    description
+	  }
+      enumValues { 
+	    name
+	    description
+	  }
     }
   }
 }
