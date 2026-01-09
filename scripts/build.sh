@@ -15,13 +15,22 @@ else
     echo "Warning: .version file not found, using ${VERSION}"
 fi
 
-GITSHA="$(git rev-parse HEAD)"
-GITBRANCH="$(git rev-parse --abbrev-ref HEAD)"
+# Git info with fallback
+if command -v git >/dev/null 2>&1 && git rev-parse --git-dir >/dev/null 2>&1; then
+    GITSHA="$(git rev-parse HEAD)"
+    GITBRANCH="$(git rev-parse --abbrev-ref HEAD)"
+else
+    GITSHA="unknown"
+    GITBRANCH="unknown"
+fi
 
 # Determine the arch/os combos we're building for
 XC_OS=${XC_OS:-"linux darwin windows"}
 XC_ARCH=${XC_ARCH:-"amd64 arm64"}
-LDFLAGS="-X github.com/teatak/gqlmcp/common.Type=${TYPE} -X github.com/teatak/gqlmcp/common.GitSha=${GITSHA} -X github.com/teatak/gqlmcp/common.GitBranch=${GITBRANCH} -X github.com/teatak/gqlmcp/common.Version=${VERSION}"
+
+# -s: disable symbol table
+# -w: disable DWARF generation
+LDFLAGS="-s -w -X github.com/teatak/gqlmcp/common.Type=${TYPE} -X github.com/teatak/gqlmcp/common.GitSha=${GITSHA} -X github.com/teatak/gqlmcp/common.GitBranch=${GITBRANCH} -X github.com/teatak/gqlmcp/common.Version=${VERSION}"
 
 # Delete the old dir
 rm -rf bin/* pkg/*
@@ -46,7 +55,7 @@ for OS in ${XC_OS}; do
 
         echo "Building ${OS}/${ARCH}"
         NAME="${BIN}"
-        if [ "${OS}" == "windows" ]; then
+        if [ "${OS}" = "windows" ]; then
             NAME="${BIN}.exe"
         fi
         
