@@ -66,6 +66,16 @@ for OS in ${XC_OS}; do
         if ! CGO_ENABLED=0 GOOS="${OS}" GOARCH="${ARCH}" go build -ldflags "${LDFLAGS}" -o "${TARGET_DIR}/${NAME}" ./ > /dev/null; then
             echo -e "\033[31;1mBuilding ${OS}/${ARCH} error\033[0m"
             FAILURES=$((FAILURES+1))
+        else
+            # Local code signing for macOS to prevent "killed" error
+            if [ "${OS}" = "darwin" ]; then
+                if command -v codesign >/dev/null 2>&1; then
+                    echo "Signing ${OS}/${ARCH} binary..."
+                    codesign --force --sign - "${TARGET_DIR}/${NAME}"
+                else
+                    echo "Warning: codesign not found, skipping signing for ${OS}/${ARCH}"
+                fi
+            fi
         fi
     done
 done

@@ -93,7 +93,7 @@ Flags:
 			URI:         "graphql://schema",
 			MIMEType:    "application/json",
 		}, func(ctx context.Context, req *mcp.ReadResourceRequest) (*mcp.ReadResourceResult, error) {
-			result, err := executeGraphQL(introspectionQuery, nil)
+			result, err := executeGraphQL(ctx, introspectionQuery, nil)
 			if err != nil {
 				return nil, err
 			}
@@ -117,7 +117,7 @@ Flags:
 			},
 		},
 		func(ctx context.Context, req *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-			result, err := executeGraphQL(introspectionQuery, nil)
+			result, err := executeGraphQL(ctx, introspectionQuery, nil)
 			if err != nil {
 				return nil, err
 			}
@@ -153,7 +153,7 @@ Flags:
 			if err := json.Unmarshal(req.Params.Arguments, args); err != nil {
 				return nil, err
 			}
-			result, err := executeGraphQL(args.Query, args.Variables)
+			result, err := executeGraphQL(ctx, args.Query, args.Variables)
 			if err != nil {
 				return nil, err
 			}
@@ -174,7 +174,7 @@ Flags:
 	}
 }
 
-func executeGraphQL(query string, variables map[string]interface{}) (string, error) {
+func executeGraphQL(ctx context.Context, query string, variables map[string]interface{}) (string, error) {
 	reqBody := GraphQLRequest{
 		Query:     query,
 		Variables: variables,
@@ -185,7 +185,7 @@ func executeGraphQL(query string, variables map[string]interface{}) (string, err
 		return "", fmt.Errorf("failed to marshal request: %w", err)
 	}
 
-	req, err := http.NewRequest("POST", endpoint, bytes.NewBuffer(jsonBody))
+	req, err := http.NewRequestWithContext(ctx, "POST", endpoint, bytes.NewBuffer(jsonBody))
 	if err != nil {
 		return "", fmt.Errorf("failed to create request: %w", err)
 	}
@@ -206,7 +206,16 @@ func executeGraphQL(query string, variables map[string]interface{}) (string, err
 		}
 	}
 
-	client := &http.Client{Timeout: 30 * time.Second}
+	timeout := 30 * time.Second
+	if timeoutEnv := os.Getenv("TIMEOUT"); timeoutEnv != "" {
+		if d, err := time.ParseDuration(timeoutEnv); err == nil {
+			timeout = d
+		} else if i, err := time.ParseDuration(timeoutEnv + "s"); err == nil {
+			timeout = i
+		}
+	}
+
+	client := &http.Client{Timeout: timeout}
 	resp, err := client.Do(req)
 	if err != nil {
 		return "", fmt.Errorf("request failed: %w", err)
